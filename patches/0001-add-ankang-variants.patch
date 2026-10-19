@@ -1,0 +1,70 @@
+From 8f6120b4b2786a29b2c42d2d1a5a12ad5054e86f Mon Sep 17 00:00:00 2001
+From: Loukky <12481807+Loukky@users.noreply.github.com>
+Date: Tue, 28 Jul 2026 01:37:44 +0800
+Subject: dict(cn): 添加鮟鱇鱼常用汉字变体词条
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ cn_dicts/base.dict.yaml | 6 ++++++
+ cn_dicts/ext.dict.yaml  | 3 +++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/cn_dicts/base.dict.yaml b/cn_dicts/base.dict.yaml
+index a4452de..c40e6b5 100644
+--- a/cn_dicts/base.dict.yaml
++++ b/cn_dicts/base.dict.yaml
+@@ -6439,19 +6439,23 @@ sort: by_weight
+ 俺看	an kan	3785
+ 安康	an kang	60380
+ 𩽾𩾌	an kang	11
++鮟鱇	an kang	15
+ 安康办	an kang ban	13
+ 安康地区	an kang di qu	545
+ 安康吉祥	an kang ji xiang	140
+ 安康街道	an kang jie dao	1
+ 𩽾𩾌科	an kang ke	2
++鮟鱇科	an kang ke	12
+ 安康路	an kang lu	305
+ 𩽾𩾌目	an kang mu	12
++鮟鱇目	an kang mu	17
+ 安康日报	an kang ri bao	135
+ 安康市	an kang shi	8565
+ 安康窝窝面	an kang wo wo mian	4
+ 安康县	an kang xian	22
+ 安康欣胶囊	an kang xin jiao nang	3
+ 𩽾𩾌亚目	an kang ya mu	1
++鮟鱇亚目	an kang ya mu	10
+ 安康医院	an kang yi yuan	280
+ 安康站	an kang zhan	197
+ 安可	an ke	1
+@@ -11192,7 +11196,9 @@ sort: by_weight
+ 白氨基酸	bai an ji suan	4
+ 百安居	bai an ju	22880
+ 白𩽾𩾌	bai an kang	1
++白鮟鱇	bai an kang	1
+ 白𩽾𩾌鱼	bai an kang yu	1
++白鮟鱇鱼	bai an kang yu	1
+ 白熬	bai ao	3333
+ 白袄	bai ao	111
+ 白熬了	bai ao le	3333
+diff --git a/cn_dicts/ext.dict.yaml b/cn_dicts/ext.dict.yaml
+index 5b82b6d..00a44e8 100644
+--- a/cn_dicts/ext.dict.yaml
++++ b/cn_dicts/ext.dict.yaml
+@@ -2009,8 +2009,11 @@ sort: by_weight
+ 安俊英	an jun ying	100
+ 安康社区	an kang she qu	100
+ 𩽾𩾌属	an kang shu	100
++鮟鱇属	an kang shu	110
+ 安康幸福	an kang xing fu	100
+ 𩽾𩾌鱼	an kang yu	100
++鮟鱇鱼	an kang yu	110
++安康鱼	an kang yu	120
+ 安克拉	an ke la	100
+ 安克拉治	an ke la zhi	100
+ 安可曲	an ke qu	100
+-- 
+2.39.5
+
