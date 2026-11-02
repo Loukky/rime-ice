@@ -1,0 +1,131 @@
+name: Sync upstream + apply patches
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 配置 Git
+        run: |
+          git config user.name "Loukky"
+          git config user.email "12481807+Loukky@users.noreply.github.com"
+
+      - name: 添加上游 remote
+        run: |
+          git remote add upstream https://github.com/iDvel/rime-ice.git
+          git fetch upstream main
+
+      # ========== 关键：在 reset 前备份所有自定义文件 ==========
+      # reset --hard upstream/main 会删除上游没有的一切，
+      # 包括 .github/workflows/ 自身。必须提前备份，否则定时任务自己消失。
+      - name: 备份自定义基础设施
+        run: |
+          mkdir -p /tmp/custom-backup
+          # 注意：cp 整个目录，保持原结构（.github/ 和 patches/ 都在同层）
+          cp -r .github /tmp/custom-backup/ 2>/dev/null || true
+          cp -r patches /tmp/custom-backup/ 2>/dev/null || true
+          ls -la /tmp/custom-backup/
+
+      - name: 重置到上游最新版本
+        run: |
+          git checkout main
+          git reset --hard upstream/main
+
+      # ========== 恢复自定义文件 ==========
+      - name: 恢复自定义基础设施
+        run: |
+          ls -la /tmp/custom-backup/
+          # 恢复 .github/（含 workflows/）
+          # 注意：cp 源目录到已存在的目标目录会嵌套成 .github/.github/，
+          # 必须用 源/. 的形式复制内容
+          if [ -d /tmp/custom-backup/.github ]; then
+            mkdir -p .github
+            cp -r /tmp/custom-backup/.github/. .github/
+          fi
+          # 恢复 patches/
+          if [ -d /tmp/custom-backup/patches ]; then
+            mkdir -p patches
+            cp -r /tmp/custom-backup/patches/. patches/
+          fi
+          echo "--- 恢复后结构 ---"
+          ls -la .github/
+          ls -la .github/workflows/ 2>/dev/null || true
+          ls -la patches/ 2>/dev/null || true
+
+      - name: 提交基础设施文件
+        run: |
+          git add patches/ .github/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: restore custom infra files"
+          fi
+
+      - name: 应用自定义词条
+        run: |
+          # === 方案一：patch 命令（支持 --fuzz 模糊匹配）===
+          for patch_file in patches/*.patch; do
+            if [ ! -f "$patch_file" ]; then continue; fi
+            name=$(basename "$patch_file")
+            echo "=== 尝试打补丁: $name ==="
+            # -r /dev/null: 部分失败时丢弃 .rej 文件，不污染仓库
+            if patch -p1 --fuzz=2 --forward --no-backup-if-mismatch -r /dev/null < "$patch_file" 2>/dev/null; then
+              git add cn_dicts/
+              msg=$(head -5 "$patch_file" | grep "^Subject:" | sed 's/Subject: //')
+              git commit -m "$msg"
+              echo "  ✓ 补丁应用成功"
+            else
+              # 清理可能残留的 .rej 文件
+              find . -name '*.rej' -delete 2>/dev/null || true
+              echo "  ⚠ patch 未应用，尝试锚点插入兜底"
+            fi
+          done
+
+          # === 方案二：sed 锚点插入（完全免疫上下文变动，幂等）===
+          echo ""
+          echo "=== 锚点插入（兜底） ==="
+          insert() {
+            local file="$1" anchor="$2" new="$3"
+            if grep -Fxq "$new" "$file" 2>/dev/null; then
+              echo "  ✓ 已存在: $(echo "$new" | head -c 40)"
+            elif grep -Fxq "$anchor" "$file" 2>/dev/null; then
+              sed -i "/^$anchor$/a\\$new" "$file"
+              echo "  + 已插入: $(echo "$new" | head -c 40)"
+            else
+              echo "  ⚠ 未找到锚点: $(echo "$anchor" | head -c 30)"
+            fi
+          }
+
+          insert "cn_dicts/base.dict.yaml" "𩽾𩾌	an kang	11"    "鮟鱇	an kang	15"
+          insert "cn_dicts/base.dict.yaml" "𩽾𩾌科	an kang ke	2"   "鮟鱇科	an kang ke	12"
+          insert "cn_dicts/base.dict.yaml" "𩽾𩾌目	an kang mu	12"  "鮟鱇目	an kang mu	17"
+          insert "cn_dicts/base.dict.yaml" "𩽾𩾌亚目	an kang ya mu	1" "鮟鱇亚目	an kang ya mu	10"
+          insert "cn_dicts/base.dict.yaml" "白𩽾𩾌	bai an kang	1"     "白鮟鱇	bai an kang	1"
+          insert "cn_dicts/base.dict.yaml" "白𩽾𩾌鱼	bai an kang yu	1" "白鮟鱇鱼	bai an kang yu	1"
+          insert "cn_dicts/ext.dict.yaml"  "𩽾𩾌属	an kang shu	100"   "鮟鱇属	an kang shu	110"
+          insert "cn_dicts/ext.dict.yaml"  "𩽾𩾌鱼	an kang yu	100"   "鮟鱇鱼	an kang yu	110"
+          insert "cn_dicts/ext.dict.yaml"  "鮟鱇鱼	an kang yu	110"   "安康鱼	an kang yu	120"
+
+          if ! git diff --quiet; then
+            git add cn_dicts/
+            if ! git diff --cached --quiet; then
+              git commit -m "dict(cn): 添加鮟鱇鱼常用汉字变体词条（锚点插入）"
+              echo "  ✓ sed 插入已提交"
+            fi
+          fi
+
+      - name: 推送到 fork
+        run: |
+          git push origin main --force
